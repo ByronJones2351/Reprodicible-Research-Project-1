@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Set working directory, read in the dataset and look at first few rows
 ```{r}
 # set working directory
-setwd("//Phchbs-s3159/jonesby1$/data/Byron/R/Reproducible Research")
+setwd("//Phchbs-s3159/jonesby1$/data/Byron/R/Reproducible Research/Projects")
 
 # read in the dataset and look at first few rows
 activity<-read.csv("activity.csv",head=TRUE)
@@ -58,13 +58,20 @@ ggplot(data=day.mean.df, aes(day.mean.df$day.mean)) +
   geom_histogram(bins=30) +
    labs(title="Histogram for total number of steps taken each day") +
    labs(x="total number of steps per day", y="Frequency")
+
 ```
+```
+```
+# Note the high frequency of zero counts
 ```
 ```
 # Mean and median of total number per day
 ```{r}
 print(mean(day.mean))
 print(median(day.mean))
+```
+# Mean is lower than median due to high frequency of intervals with zero steps
+```
 ```
 # Time series plot of average number of steps taken
 ```{r}
@@ -85,11 +92,17 @@ ggplot(interval.df, aes(x=interval.values, y=interval.mean)) +
 ```
 ```
 ```
-# Maximum mean number of days
+# Highest mean for 5-minute interval labels between 500 and 1000
+```
+```
+# Maximum mean number of steps
 ```{r}
 ## maximum mean number of steps
 max.mean<-max(interval.mean)
 print(max.mean) 
+```
+# Maximum mean number of steps is 206.17
+```
 ```
 # Label of the interval that contains the maximum
 ```{r}
@@ -97,13 +110,21 @@ print(max.mean)
 max.interval<-interval.values[interval.mean==max(interval.mean)]
 print(max.interval)
 ```
+# Interval that contains the maximum is 835
+```
+```
 # Total number of rows with missing data
 ```{r}
 ## total number of rows with missing data (NA)
 total.NA<-sum(is.na(activity$steps))
 print(total.NA)
 ```
+# Total number of rows with missing data is 2304
+```
+```
 # Imputation of missing data
+# Imputation rule: replace NA with the mean for that day
+
 ```{r}
 ## imputation rule: replace NA with the mean for that day
 
@@ -142,101 +163,31 @@ ggplot(data=day.mean.imp.df, aes(day.mean.imp.df$day.mean.imp)) +
 ```
 ```
 ```
+# Histogram is now less skewed: high frequency of zeros has been reduced
+```
+```
 # Identify weekends and add this identifier to the existing activity list
 ```{r}
+## identify weekends
 weekend<-(activity.imp$day=="Saturday" | activity.imp$day=="Sunday")
+
 ## add this to existing activity list
 activity.imp[["daytype"]]<-weekend
 activity.imp$daytype[activity.imp$daytype]<-"weekend"
 activity.imp$daytype[activity.imp$daytype==FALSE]<-"weekday"
-```
-# Split data into week days and weekend days (separate datasets)
-```{r}
-activity.weekday<-activity.imp[activity.imp$daytype=="weekday",]
-activity.weekend<-activity.imp[activity.imp$daytype=="weekend",]
 
-# x-axis values for plotting each type of day
-interval.values.weekday<-unique(activity.weekday$interval)
-interval.values.weekend<-unique(activity.weekend$interval)
-
-## calculate mean for each 5-minute interval using the aggregate function
-## for weekdays
-interval.mean.weekday<-as.numeric(unlist(aggregate(activity.weekday$steps, by=list(activity.weekday$interval), FUN=mean, na.rm=TRUE)[2]))
-## for weekends
-interval.mean.weekend<-as.numeric(unlist(aggregate(activity.weekend$steps, by=list(activity.weekend$interval), FUN=mean, na.rm=TRUE)[2]))
-
-## make data frames for ggplot2
-interval.weekday.df<-data.frame(cbind(interval.values.weekday,interval.mean.weekday))
-interval.weekend.df<-data.frame(cbind(interval.values.weekend,interval.mean.weekend))
 ```
-# Panel plot
+# Panel plot for week days and weekend days separately
 ```{r}
-## weekdays pane
-p1<-ggplot(interval.weekday.df, aes(x=interval.values.weekday, y=interval.mean.weekday)) +
-  geom_line() +
-  ggtitle("time series plot for week days") +
-  labs(x="interval label") +
-  labs(y="mean over 5-minute interval")
-## weekends panel
-p2<-ggplot(interval.weekend.df, aes(x=interval.values.weekend, y=interval.mean.weekend)) +
-  geom_line() +
-  ggtitle("time series plot for weekend days") +
-  labs(x="interval label") +
-  labs(y="mean over 5-minute interval")
-```
-# Function multiplot
-```{r}
+library(dplyr)
+activity.grp <- group_by(activity.imp, daytype, interval)
+avgInt <- summarise(activity.grp, AvgSteps = mean(steps))
 
-##########################
-# Multiple plot function
-##########################
-#
-# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
-# - cols:   Number of columns in layout
-# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-#
-# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-# then plot 1 will go in the upper left, 2 will go in the upper right, and
-# 3 will go all the way across the bottom.
-#
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                     ncol = cols, nrow = ceiling(numPlots/cols))
-  }
-  
-  if (numPlots==1) {
-    print(plots[[1]])
-    
-  } else {
-    
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
+library(lattice)
+xyplot(AvgSteps ~ interval | factor(daytype), avgInt, type = "l", 
+       xlab = "Interval", ylab = "Number of steps")
 ```
-# Panel plot via function multiplot comparing weekdays and weekends
-```{r}
-multiplot(p1, p2, cols=1)
 ```
+```
+# Conclusion: number of steps per 5-minute interval is spread more uniformly over the weekend compared to the weekdays.
+
