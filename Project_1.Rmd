@@ -2,7 +2,7 @@
 title: "Project_1"
 author: "Byron Jones"
 date: "January 19, 2017"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
