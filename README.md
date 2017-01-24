@@ -2,3 +2,5 @@
 First assignment for Coursera Reproducible Research module
 
 Edits made so pull request can be done
+
+Second attempt
